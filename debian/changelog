@@ -1,9 +1,13 @@
 debathena-lightdm-config (1.12) unstable; urgency=low
 
+  [ Alexander Chernyakhovsky ]
   * Add git-buildpackage configuration
   * Set source format to 3.0 (native)
 
- -- Alexander Chernyakhovsky <achernya@mit.edu>  Sun, 29 Sep 2013 05:43:21 -0400
+  [ Jonathan Reed ]
+  * Fix background window bug (Trac: #1247)
+
+ -- Jonathan Reed <jdreed@mit.edu>  Mon, 16 Dec 2013 17:03:57 -0500
 
 debathena-lightdm-config (1.11) unstable; urgency=low
 

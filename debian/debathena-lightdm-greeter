@@ -259,6 +259,7 @@ class DebathenaGreeter:
     def initBackgroundWindow(self):
         # The background image
         self.winBg = self.builder.get_object("winBg")
+        self.winBg.connect("configure-event", self.winBg_configure_event)
         self.imgBg = self.builder.get_object("imgBg")
         try:
             bg_pixbuf = GdkPixbuf.Pixbuf.new_from_file(self.backgroundImageFile)
@@ -389,6 +390,11 @@ class DebathenaGreeter:
             self.afsAvailable = True
         if evt_type == Gio.FileMonitorEvent.UNMOUNTED:
             self.afsAvailable = False
+
+    def winBg_configure_event(self, widget, evt):
+        if (int(evt.x) != 0) or (int(evt.y) != 0):
+            # Prevent glasgall and achernya from moving the background window
+            self.winBg.move(0,0)
 
     def _file_changed(self, monitor, file1, file2, evt_type):
         if evt_type == Gio.FileMonitorEvent.CREATED:
