@@ -1,3 +1,10 @@
+debathena-lightdm-config (1.13) unstable; urgency=low
+
+  * Make greeter play nice with Switch User feature in Trusty and other
+    logind-based releases.
+
+ -- Jonathan Reed <jdreed@mit.edu>  Sat, 05 Jul 2014 15:30:06 -0400
+
 debathena-lightdm-config (1.12) unstable; urgency=low
 
   [ Alexander Chernyakhovsky ]

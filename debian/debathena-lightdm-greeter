@@ -10,6 +10,7 @@ from gi.repository import GdkPixbuf
 from gi.repository import LightDM
 
 import sys
+import dbus
 import platform
 import subprocess
 import pwd
@@ -18,6 +19,10 @@ import os.path
 from optparse import OptionParser
 import ConfigParser
 import io
+LD_NAME = 'org.freedesktop.login1'
+LD_MANAGER_PATH = '/org/freedesktop/login1'
+LD_MANAGER_IFACE = 'org.freedesktop.login1.Manager'
+LD_SESSION_IFACE = 'org.freedesktop.login1.Session'
 
 KIOSK_LAUNCH_CMD="/usr/lib/debathena-kiosk/lightdm-launch-kiosk"
 PICKBOARD_CMD="/usr/bin/onboard"
@@ -433,7 +438,7 @@ class DebathenaGreeter:
 
     def startOver(self):
         self.greeter.cancel_authentication()
-        self.greeter.authenticate(None)
+        self.greeter.authenticate(self.find_logged_in_user_name())
 
     # LightDM Callbacks
     # The workflow is this:
@@ -468,7 +473,7 @@ class DebathenaGreeter:
         elif not self.beingCancelled:
             self._debug("Authentication failed.")
             self.displayMessage("Authentication failed, please try again")
-            self.greeter.authenticate(None)
+            self.greeter.authenticate(self.find_logged_in_user_name())
         else:
             self.beingCancelled=False
             self.resetLoginWindow()
@@ -579,6 +584,38 @@ class DebathenaGreeter:
         dlg.destroy()
 
 
+    def find_logged_in_user_name(self):
+        bus = dbus.SystemBus()
+        try:
+            manager = dbus.Interface(bus.get_object(LD_NAME, LD_MANAGER_PATH),
+                                     LD_MANAGER_IFACE)
+        except dbus.exceptions.DBusException as e:
+            if e.get_dbus_name() != "org.freedesktop.DBus.Error.ServiceUnknown":
+                print >>sys.stderr, "Unexpected DBus Exception", e
+            return None
+        sessions = manager.ListSessions()
+        target_sessions = {}
+        for s in sessions:
+            # Each session is a dbus.Struct (tuple) of:
+            # (session id, uid, username, seat id, and session object path)
+            session = dbus.Interface(bus.get_object(LD_NAME, s[-1]),
+                                     LD_SESSION_IFACE)
+            obj_properties = dbus.Interface(session,
+                                            'org.freedesktop.DBus.Properties')
+            properties = obj_properties.GetAll(LD_SESSION_IFACE)
+            if properties['Type'] == 'x11' and properties['Class'] == 'user':
+                msgTxt = "This workstation is currently locked by {0}@mit.edu."
+                msgTxt += "\nYou must enter your password to unlock it."
+                dlg = Gtk.MessageDialog(self.winLogin,
+                                        Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                        Gtk.MessageType.INFO,
+                                        Gtk.ButtonsType.OK,
+                                        msgTxt.format(properties['Name']))
+                dlg.run()
+                dlg.destroy()
+                return properties['Name']
+        return None
+
     def spin(self, start):
         if start:
             self.loginSpinner.show()
@@ -610,7 +647,7 @@ class DebathenaGreeter:
             # Show the "Cancel" button"
             self.sessionBox.show()
             self.btnCancel.show()
-            self.greeter.authenticate(None)
+            self.greeter.authenticate(self.find_logged_in_user_name())
  
     # Load the Debathena owl image and generate self.logo_pixbufs, the list of
     # animation frames.  Returns True if successful, False otherwise.
