@@ -585,6 +585,9 @@ class DebathenaGreeter:
 
 
     def find_logged_in_user_name(self):
+        # Ensure we only do this if c-l-c is installed
+        if not os.path.exists("/usr/share/debathena-cluster-login-config/screensaver_logout.sh"):
+            return None
         bus = dbus.SystemBus()
         try:
             manager = dbus.Interface(bus.get_object(LD_NAME, LD_MANAGER_PATH),
@@ -604,15 +607,26 @@ class DebathenaGreeter:
                                             'org.freedesktop.DBus.Properties')
             properties = obj_properties.GetAll(LD_SESSION_IFACE)
             if properties['Type'] == 'x11' and properties['Class'] == 'user':
-                msgTxt = "This workstation is currently locked by {0}@mit.edu."
-                msgTxt += "\nYou must enter your password to unlock it."
-                dlg = Gtk.MessageDialog(self.winLogin,
-                                        Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                                        Gtk.MessageType.INFO,
-                                        Gtk.ButtonsType.OK,
-                                        msgTxt.format(properties['Name']))
-                dlg.run()
-                dlg.destroy()
+                dlg = self.builder.get_object("dlgLocked")
+                lbl = self.builder.get_object("lblLocked")
+                login_at = int(properties['Timestamp']) / 1000000
+                idle = int(time.time()) - login_at
+                self.builder.get_object("lblLogout").set_visible(idle >= 1200)
+                self.builder.get_object("btnReboot").set_visible(idle >= 1200)
+                lbl.set_text(lbl.get_text().replace('@LOCKTIME@',
+                                                    time.ctime(login_at)))
+                lbl.set_text(
+                    lbl.get_text().replace('@USERNAME@',
+                                           '{0}@mit.edu'.format(
+                            properties['Name'])))
+
+                rv = dlg.run()
+                dlg.hide()
+                if rv == 42:
+                    try:
+                        subprocess.check_call(['sudo', 'reboot'])
+                    except subprocess.CalledProcessError as e:
+                        self.errDialog("Could not reboot workstation.  Try pressing power switch.")
                 return properties['Name']
         return None
 

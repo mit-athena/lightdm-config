@@ -1,3 +1,11 @@
+debathena-lightdm-config (1.13.1) unstable; urgency=low
+
+  * Add a hack to allow users to reboot the workstation from the greeter,
+    on debathena-cluster only, and only if the user has been idle for long
+    enough.
+
+ -- Jonathan Reed <jdreed@mit.edu>  Tue, 08 Jul 2014 17:16:21 -0400
+
 debathena-lightdm-config (1.13) unstable; urgency=low
 
   * Make greeter play nice with Switch User feature in Trusty and other
