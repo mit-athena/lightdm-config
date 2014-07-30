@@ -24,7 +24,9 @@ LD_MANAGER_PATH = '/org/freedesktop/login1'
 LD_MANAGER_IFACE = 'org.freedesktop.login1.Manager'
 LD_SESSION_IFACE = 'org.freedesktop.login1.Session'
 
-KIOSK_LAUNCH_CMD="/usr/lib/debathena-kiosk/lightdm-launch-kiosk"
+KIOSK_SESSION_KEY="debathena-kiosk"
+KIOSK_USER="kiosk@mit"
+KIOSK_LAUNCH_CMD="/usr/lib/debathena-kiosk/debathena-kiosk-session"
 PICKBOARD_CMD="/usr/bin/onboard"
 UI_FILE="/usr/share/debathena-lightdm-config/debathena-lightdm-greeter.ui"
 CONFIG_FILE="/etc/debathena-lightdm-greeter.ini"
@@ -181,7 +183,8 @@ class DebathenaGreeter:
         self.cmbSession.set_entry_text_column(0);
         self.cmbSession.set_id_column(1);
         for s in LightDM.get_sessions():
-            self.cmbSession.append(s.get_key(), s.get_name())
+            if s.get_key() != KIOSK_SESSION_KEY:
+                self.cmbSession.append(s.get_key(), s.get_name())
         # Select the first session
         # TODO: Select the configured default session or the user's session
         self.cmbSession.set_active(0)
@@ -431,6 +434,8 @@ class DebathenaGreeter:
         Gdk.Window.focus(self.winLogin.get_window(), Gdk.CURRENT_TIME)
 
     def getSelectedSession(self):
+        if self.greeter.get_authentication_user() == KIOSK_USER:
+            return KIOSK_SESSION_KEY
         i = self.cmbSession.get_active_iter()
         session_name = self.cmbSession.get_model().get_value(i, 1)
         self._debug("selected session is " + session_name)
@@ -572,7 +577,8 @@ class DebathenaGreeter:
         self.message_label.hide()
 
     def spawnBrowser(self, event):
-        subprocess.call(KIOSK_LAUNCH_CMD)
+        self.startOver()
+        self.greeter.authenticate(KIOSK_USER)
 
     def errDialog(self, errText):
         dlg = Gtk.MessageDialog(self.winLogin,
