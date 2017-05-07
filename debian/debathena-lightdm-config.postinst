@@ -39,8 +39,14 @@ case "$1" in
 	# Deal with the fact that symlinks don't work in /etc/init 
 	# If we managed to confuse upstart such that we don't exist,
 	# force a reload:
-	if ! status lightdm >/dev/null 2>&1; then
+	# Also check that initctl can connect to upstart system bus, or indeed, exist at all
+	if initctl version 2>/dev/null && ! status lightdm >/dev/null 2>&1; then
 	    # I hope this doesn't break the world.
+	    # Update: This does break the world on xenial, which uses upstart, but
+	    # only in the user session, so initctl doesn't see it running in this
+	    # script. Temporary hack in the if statement above to let the package
+	    # install, with intent to deprecate once the last vestiges of upstart
+	    # has been purged from our collective memory.
 	    initctl reload-configuration
 	fi
 	if pgrep -u lightdm -f debathena-lightdm-greeter >/dev/null 2>&1; then
